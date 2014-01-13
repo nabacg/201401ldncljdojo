@@ -76,7 +76,13 @@
       (render [this]
         (dom/div nil
                  (dom/h3 nil "ticker")
-                 (dom/p nil (om/get-state owner :ticks) " seconds elapsed"))))))
+                 (dom/p nil (om/get-state owner :ticks) " seconds elapsed")
+                 (dom/button
+                  #js {:onClick
+                       (fn [e]
+                         (om/set-state! owner :ticks 0))}
+                  "reset"))
+        ))))
 
 (go 
   (let [ws (<! (ws-ch "ws://localhost:3000/ws")) ; establish web socket connection
