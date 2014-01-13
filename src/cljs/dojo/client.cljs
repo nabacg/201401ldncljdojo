@@ -59,6 +59,25 @@
         (dom/ul nil
           (om/build-all message (data :messages)))))))
 
+(defn ticker [data owner]
+  (letfn [(tick []
+            (om/set-state! owner :ticks (inc (om/get-state owner :ticks)))
+            )]
+    (reify
+      om/IDidMount
+      (did-mount [_ _]
+        (om/set-state! owner :ticks 0)
+        (go-loop []
+         (<! (timeout 1000))
+         (tick)
+         (recur)))
+
+      om/IRender
+      (render [this]
+        (dom/div nil
+                 (dom/h3 nil "ticker")
+                 (dom/p nil (om/get-state owner :ticks) " seconds elapsed"))))))
+
 (go 
   (let [ws (<! (ws-ch "ws://localhost:3000/ws")) ; establish web socket connection
         app-state (atom {:ws ws :messages [{:message "None Yet!"}]})] ; initialise global state of app
@@ -70,7 +89,8 @@
               (render [_]
                 (dom/div nil
                   (om/build the-sender app)
-                  (om/build message-list app)))))
+                  (om/build message-list app)
+                  (om/build ticker app)))))
           (.getElementById js/document "app"))))
 
 
