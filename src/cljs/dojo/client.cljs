@@ -61,39 +61,39 @@
 
 (defn ticker [data owner]
   (letfn [(tick []
-            (om/set-state! owner :ticks (inc (om/get-state owner :ticks)))
+            (om/transact! data :tick inc)
             )]
     (reify
       om/IDidMount
       (did-mount [_ _]
-        (om/set-state! owner :ticks 0)
-        (om/set-state! owner :active true)
         (go-loop []
                  (<! (timeout 1000))
-                 (when (om/get-state owner :active)
-                   (tick))
+                 (om/read data :active
+                          (fn [active]
+                            (when active
+                              (tick))))
                  (recur)))
 
       om/IRender
       (render [this]
         (dom/div nil
                  (dom/h3 nil "ticker")
-                 (dom/p nil (om/get-state owner :ticks) " seconds elapsed")
+                 (dom/p nil (data :tick) " seconds elapsed")
                  (dom/button
                   #js {:onClick
                        (fn [e]
-                         (om/set-state! owner :ticks 0))}
+                         (om/transact! data :tick (constantly 0)))}
                   "reset")
                  (dom/button
                   #js {:onClick
                        (fn [e]
-                         (om/set-state! owner :active (not (om/get-state owner :active))))}
+                         (om/transact! data :active not))}
                   "pause/resume"))
         ))))
 
 (go 
   (let [ws (<! (ws-ch "ws://localhost:3000/ws")) ; establish web socket connection
-        app-state (atom {:ws ws :messages [{:message "None Yet!"}]})] ; initialise global state of app
+        app-state (atom {:ws ws :messages [{:message "None Yet!"}] :ticks {:tick 0 :active true}})] ; initialise global state of app
         (om/root 
           app-state
           (fn [app owner]
@@ -103,7 +103,7 @@
                 (dom/div nil
                   (om/build the-sender app)
                   (om/build message-list app)
-                  (om/build ticker app)))))
+                  (om/build ticker (app :ticks))))))
           (.getElementById js/document "app"))))
 
 
