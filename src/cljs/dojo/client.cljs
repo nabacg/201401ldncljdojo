@@ -67,10 +67,12 @@
       om/IDidMount
       (did-mount [_ _]
         (om/set-state! owner :ticks 0)
+        (om/set-state! owner :active true)
         (go-loop []
-         (<! (timeout 1000))
-         (tick)
-         (recur)))
+                 (<! (timeout 1000))
+                 (when (om/get-state owner :active)
+                   (tick))
+                 (recur)))
 
       om/IRender
       (render [this]
@@ -81,7 +83,12 @@
                   #js {:onClick
                        (fn [e]
                          (om/set-state! owner :ticks 0))}
-                  "reset"))
+                  "reset")
+                 (dom/button
+                  #js {:onClick
+                       (fn [e]
+                         (om/set-state! owner :active (not (om/get-state owner :active))))}
+                  "pause/resume"))
         ))))
 
 (go 
